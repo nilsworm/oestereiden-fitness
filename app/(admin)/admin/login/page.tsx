@@ -42,7 +42,7 @@ export default function AdminLoginPage() {
         className="relative z-10 flex w-full max-w-sm flex-col gap-4 rounded-3xl border border-white/20 bg-white/20 backdrop-blur-xl p-10 shadow-2xl"
       >
         <div className="flex justify-center">
-          <Image src="/oestereiden-logo.png" alt="SuS Oestereiden Logo" width={80} height={80} />
+          <Image src="/oestereiden-logo.png" alt="SuS Oestereiden Logo" width={80} height={80} className="drop-shadow-[0_4px_16px_rgba(255,255,255,0.25)] brightness-110 contrast-[0.9] saturate-[0.85] opacity-90" />
         </div>
         <h1 className="text-center text-xl font-semibold text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.5)]">Admin Login</h1>
         <InputField label="E-Mail" name="email" type="email" placeholder="admin@beispiel.de" required />

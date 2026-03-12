@@ -21,6 +21,7 @@ const EventSchema = new Schema<IUser>(
             type: String,
             required: [true, 'Email is required'],
             trim: true,
+            lowercase: true,
             maxlength: [500, 'Email cannot exceed 500 characters'],
         },
         phone: {

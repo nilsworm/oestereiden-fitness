@@ -19,6 +19,7 @@ const AdminSchema = new Schema<IAdmin>(
     password: {
       type: String,
       required: [true, "Password is required"],
+      minlength: [8, "Password must be at least 8 characters"],
     },
   },
   { timestamps: true }

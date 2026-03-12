@@ -44,12 +44,13 @@ const validationRules: Record<string, (value: string) => string | null> = {
   },
   email: (v) => {
     if (!v.trim()) return "E-Mail ist erforderlich";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Ungültige E-Mail-Adresse";
+    if (!/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$/.test(v)) return "Ungültige E-Mail-Adresse";
     return null;
   },
   phone: (v) => {
     if (!v.trim()) return "Telefonnummer ist erforderlich";
-    if (!/^\+?[\d\s]{7,}$/.test(v.trim())) return "Ungültige Telefonnummer";
+    const cleaned = v.trim().replace(/[\s\-/()]/g, "");
+    if (!/^\+?\d{7,15}$/.test(cleaned)) return "Ungültige Telefonnummer";
     return null;
   },
 };
@@ -82,6 +83,11 @@ export default function RegistrationPage() {
           <Image src="/oestereiden-logo.png" alt="SuS Oestereiden Logo" width={80} height={80} />
         </div>
         <h1 className="text-center text-xl font-semibold text-white [text-shadow:0_2px_6px_rgba(0,0,0,0.5)]">Registrierung</h1>
+        {state.message && (
+          <p className="rounded-lg bg-red-500/20 border border-red-400/30 px-3 py-2 text-center text-sm text-red-200">
+            {state.message}
+          </p>
+        )}
         <InputField label="Name" name="name" type="text" placeholder="Max Mustermann" required error={errors.name ?? blurErrors.name} onBlur={handleBlur} />
         <InputField label="E-Mail" name="email" type="email" placeholder="max@beispiel.de" required error={errors.email ?? blurErrors.email} onBlur={handleBlur} />
         <InputField label="Telefonnummer" name="phone" type="tel" placeholder="+49 123 456789" required error={errors.phone ?? blurErrors.phone} onBlur={handleBlur} />

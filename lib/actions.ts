@@ -4,7 +4,29 @@ import connectDB from "@/lib/mongodb";
 import { auth, signIn } from "@/lib/auth";
 import User from "@/app/database/user.model";
 import Code from "@/app/database/code.model";
+import LoginAttempt from "@/app/database/login-attempt.model";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import type { Session } from "next-auth";
+
+const REG_MAX = 10;
+const REG_WINDOW_MS = 15 * 60 * 1000;
+
+function sanitize(input: string): string {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
+// --- Helpers ---
+
+function requireAuth(session: Session | null, role?: string) {
+  if (!session?.user) redirect(role === "admin" ? "/admin/login" : "/registration");
+  if (role && session.user.role !== role) redirect(role === "admin" ? "/admin/login" : "/registration");
+}
 
 // --- Registration ---
 
@@ -17,17 +39,18 @@ const rules: Record<string, (v: string) => string | null> = {
   },
   email: (v) => {
     if (!v.trim()) return "E-Mail ist erforderlich";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return "Ungültige E-Mail-Adresse";
+    if (!/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$/.test(v)) return "Ungültige E-Mail-Adresse";
     return null;
   },
   phone: (v) => {
     if (!v.trim()) return "Telefonnummer ist erforderlich";
-    if (!/^\+?[\d\s]{7,}$/.test(v.trim())) return "Ungültige Telefonnummer";
+    const cleaned = v.trim().replace(/[\s\-/()]/g, "");
+    if (!/^\+?\d{7,15}$/.test(cleaned)) return "Ungültige Telefonnummer";
     return null;
   },
 };
 
-type FormState = { errors?: Record<string, string> };
+type FormState = { errors?: Record<string, string>; message?: string };
 
 export async function registerUser(_prev: FormState, formData: FormData): Promise<FormState> {
   const errors: Record<string, string> = {};
@@ -37,13 +60,26 @@ export async function registerUser(_prev: FormState, formData: FormData): Promis
   }
   if (Object.keys(errors).length > 0) return { errors };
 
-  const name = (formData.get("name") as string).trim();
-  const email = (formData.get("email") as string).trim();
-  const phone = (formData.get("phone") as string).trim();
+  const name = sanitize((formData.get("name") as string).trim());
+  const email = sanitize((formData.get("email") as string).trim().toLowerCase());
+  const phone = sanitize((formData.get("phone") as string).trim());
 
-  await connectDB();
-  await User.create({ name, email, phone });
-  await signIn("user-registration", { email, redirect: false });
+  try {
+    await connectDB();
+
+    // Rate limiting: max 10 Registrierungen pro IP in 15 Minuten
+    const h = await headers();
+    const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const since = new Date(Date.now() - REG_WINDOW_MS);
+    const attempts = await LoginAttempt.countDocuments({ ip, type: "registration", createdAt: { $gt: since } });
+    if (attempts >= REG_MAX) return { message: "Zu viele Versuche. Bitte warte 15 Minuten." };
+
+    await LoginAttempt.create({ ip, type: "registration" });
+    await User.create({ name, email, phone });
+    await signIn("user-registration", { email, redirect: false });
+  } catch {
+    return { message: "Registrierung fehlgeschlagen. Bitte versuche es erneut." };
+  }
   redirect("/code");
 }
 
@@ -51,42 +87,58 @@ export async function registerUser(_prev: FormState, formData: FormData): Promis
 
 export async function getCodeForUser() {
   const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  requireAuth(session);
 
-  await connectDB();
-  const doc = await Code.findOne().lean();
-  return doc?.value ?? "0000";
+  try {
+    await connectDB();
+    const doc = await Code.findOne().lean();
+    return doc?.value ?? "0000";
+  } catch {
+    throw new Error("Daten konnten nicht geladen werden.");
+  }
 }
 
 // --- Admin: Get Users ---
 
 export async function getUsers() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "admin") throw new Error("Unauthorized");
+  requireAuth(session, "admin");
 
-  await connectDB();
-  const users = await User.find().sort({ createdAt: -1 }).lean();
-  return JSON.parse(JSON.stringify(users));
+  try {
+    await connectDB();
+    const users = await User.find().sort({ createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(users));
+  } catch {
+    throw new Error("Benutzerdaten konnten nicht geladen werden.");
+  }
 }
 
 // --- Admin: Code ---
 
 export async function getCode() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "admin") throw new Error("Unauthorized");
+  requireAuth(session, "admin");
 
-  await connectDB();
-  const doc = await Code.findOne().lean();
-  return doc?.value ?? "0000";
+  try {
+    await connectDB();
+    const doc = await Code.findOne().lean();
+    return doc?.value ?? "0000";
+  } catch {
+    throw new Error("Code konnte nicht geladen werden.");
+  }
 }
 
 export async function updateCode(value: string) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "admin") throw new Error("Unauthorized");
+  requireAuth(session, "admin");
 
-  if (!/^\d{4}$/.test(value)) throw new Error("Code muss genau 4 Ziffern haben");
+  if (!/^\d{4}$/.test(value)) throw new Error("Code muss genau 4 Ziffern haben.");
 
-  await connectDB();
-  await Code.findOneAndUpdate({}, { value }, { upsert: true });
-  return value;
+  try {
+    await connectDB();
+    await Code.findOneAndUpdate({}, { value }, { upsert: true });
+    return value;
+  } catch {
+    throw new Error("Code konnte nicht gespeichert werden.");
+  }
 }

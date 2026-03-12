@@ -1,20 +1,19 @@
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
-  const token =
-    request.cookies.get("authjs.session-token")?.value ||
-    request.cookies.get("__Secure-authjs.session-token")?.value;
+export default auth((req) => {
+  const isAdmin = req.nextUrl.pathname.startsWith("/admin");
 
-  if (!token) {
-    const redirect = request.nextUrl.pathname.startsWith("/admin")
-      ? "/admin/login"
-      : "/registration";
-    return NextResponse.redirect(new URL(redirect, request.url));
+  if (!req.auth?.user) {
+    return NextResponse.redirect(new URL(isAdmin ? "/admin/login" : "/registration", req.url));
+  }
+
+  if (isAdmin && req.auth.user.role !== "admin") {
+    return NextResponse.redirect(new URL("/admin/login", req.url));
   }
 
   return NextResponse.next();
-}
+});
 
 export const runtime = "nodejs";
 

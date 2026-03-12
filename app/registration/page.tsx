@@ -2,6 +2,7 @@
 
 import { useActionState, useState, useCallback } from "react";
 import Image from "next/image";
+import { registerUser } from "@/lib/actions";
 
 type InputFieldProps = {
   label: string;
@@ -9,13 +10,11 @@ type InputFieldProps = {
   type: string;
   placeholder: string;
   required?: boolean;
-  pattern?: string;
-  minLength?: number;
   error?: string;
   onBlur?: (name: string, value: string) => void;
 };
 
-function InputField({ label, name, type, placeholder, required, pattern, minLength, error, onBlur }: InputFieldProps) {
+function InputField({ label, name, type, placeholder, required, error, onBlur }: InputFieldProps) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={name} className="text-sm font-medium text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
@@ -27,8 +26,6 @@ function InputField({ label, name, type, placeholder, required, pattern, minLeng
         type={type}
         placeholder={placeholder}
         required={required}
-        pattern={pattern}
-        minLength={minLength}
         aria-invalid={!!error}
         onBlur={onBlur ? (e) => onBlur(name, e.target.value) : undefined}
         className="peer rounded-xl border border-white/30 bg-white/20 backdrop-blur-sm px-3 py-2.5 text-sm text-white shadow-inner placeholder:text-white/50 outline-none focus:border-white/60 focus:ring-1 focus:ring-white/40 aria-[invalid=true]:border-red-400/70 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-400/50"
@@ -37,8 +34,6 @@ function InputField({ label, name, type, placeholder, required, pattern, minLeng
     </div>
   );
 }
-
-type FormErrors = Record<string, string>;
 
 const validationRules: Record<string, (value: string) => string | null> = {
   name: (v) => {
@@ -59,47 +54,26 @@ const validationRules: Record<string, (value: string) => string | null> = {
   },
 };
 
-function validate(formData: FormData): FormErrors {
-  const errors: FormErrors = {};
-  for (const [field, rule] of Object.entries(validationRules)) {
-    const error = rule(formData.get(field) as string ?? "");
-    if (error) errors[field] = error;
-  }
-  return errors;
-}
-
-async function submitAction(_prev: FormErrors, formData: FormData): Promise<FormErrors> {
-  const errors = validate(formData);
-  if (Object.keys(errors).length > 0) return errors;
-
-  // TODO: Server-Action oder API-Call
-  return {};
-}
-
 export default function RegistrationPage() {
-  const [errors, formAction, isPending] = useActionState(submitAction, {});
-  const [blurErrors, setBlurErrors] = useState<FormErrors>({});
+  const [state, formAction, isPending] = useActionState(registerUser, {});
+  const [blurErrors, setBlurErrors] = useState<Record<string, string>>({});
 
-  const handleBlur = useCallback((name: string, value: string) => {
-    const rule = validationRules[name];
+  const handleBlur = useCallback((field: string, value: string) => {
+    const rule = validationRules[field];
     if (!rule) return;
     setBlurErrors((prev) => {
       const error = rule(value);
-      if (error) return { ...prev, [name]: error };
-      const { [name]: _, ...rest } = prev;
+      if (error) return { ...prev, [field]: error };
+      const { [field]: _, ...rest } = prev;
       return rest;
     });
   }, []);
 
+  const errors = state.errors ?? {};
+
   return (
     <div className="relative flex min-h-screen items-center justify-center">
-      <Image
-        src="/Background_Oestereiden.jpg"
-        alt=""
-        fill
-        className="object-cover"
-        priority
-      />
+      <Image src="/Background_Oestereiden.jpg" alt="" fill className="object-cover" priority />
       <form
         action={formAction}
         className="relative z-10 flex w-full max-w-sm flex-col gap-4 rounded-3xl border border-white/20 bg-white/20 backdrop-blur-xl p-10 shadow-2xl"

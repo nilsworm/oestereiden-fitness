@@ -77,7 +77,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     session({ session, token }) {
-      if (token.expired) return {} as typeof session;
+      if (token.expired) {
+        session.user = undefined as unknown as typeof session.user;
+        return session;
+      }
       session.user.role = token.role as string;
       session.user.loginAt = token.loginAt as number;
       return session;

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { updateCode } from "@/lib/actions";
 
@@ -10,6 +11,7 @@ export default function AdminCodeClient({ initialCode }: { initialCode: string }
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const refs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const router = useRouter();
 
   function handleChange(index: number, value: string) {
     if (!/^\d?$/.test(value)) return;
@@ -81,12 +83,20 @@ export default function AdminCodeClient({ initialCode }: { initialCode: string }
           </p>
         )}
 
-        <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
-          className="text-sm text-white/50 transition-colors hover:text-white/80"
-        >
-          Abmelden
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={() => router.push("/admin/dashboard")}
+            className="text-sm text-white/50 transition-colors hover:text-white/80"
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            className="text-sm text-white/50 transition-colors hover:text-white/80"
+          >
+            Abmelden
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Oestereiden Fitness",
   description: "Fitness Login für den SuS Oestereiden Container",
+  other: {
+    "viewport": "width=device-width, initial-scale=1, viewport-fit=cover",
+  },
 };
 
 export default function RootLayout({
@@ -23,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de">
+    <html lang="de" className="bg-neutral-900">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

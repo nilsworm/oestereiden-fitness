@@ -43,7 +43,7 @@ export default function AdminCodeClient({ initialCode }: { initialCode: string }
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center">
+    <div className="relative flex min-h-[100dvh] items-center justify-center">
       <Image src="/Background_Oestereiden.jpg" alt="" fill className="object-cover" priority />
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center gap-6 rounded-3xl border border-white/20 bg-white/20 backdrop-blur-xl p-10 shadow-2xl">
         <div className="flex justify-center">

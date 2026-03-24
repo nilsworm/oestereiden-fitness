@@ -64,7 +64,7 @@ export default function DashboardClient({ users }: { users: User[] }) {
   const resetPage = () => setPage(0);
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center">
+    <div className="relative flex min-h-[100dvh] flex-col items-center">
       <Image src="/Background_Oestereiden.jpg" alt="" fill className="object-cover" priority />
 
       <div className="relative z-10 flex w-full max-w-3xl flex-col gap-4 p-6 pt-10">

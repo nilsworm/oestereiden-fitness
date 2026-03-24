@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center">
+    <div className="relative flex min-h-[100dvh] items-center justify-center">
       <Image src="/Background_Oestereiden.jpg" alt="" fill className="object-cover" priority />
       <form
         onSubmit={handleSubmit}
